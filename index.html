@@ -7,7 +7,7 @@
     <style>
         * {
             box-sizing: border-box;
-            user-select: none; /* 避免手機長按選單 */
+            user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -22,7 +22,6 @@
             padding: 16px;
         }
 
-        /* 遊戲主容器 */
         .game-container {
             width: 100%;
             max-width: 550px;
@@ -34,7 +33,6 @@
             padding: 16px 12px 20px;
         }
 
-        /* 狀態列 */
         .status-bar {
             background: #2c1a0ecc;
             border-radius: 60px;
@@ -106,21 +104,20 @@
             font-weight: normal;
         }
 
-        /* 下方按鈕列 */
         .action-buttons {
             display: flex;
-            gap: 20px;
+            gap: 12px;
             justify-content: center;
             margin-top: 10px;
         }
         .btn {
             background: #fbd26a;
             border: none;
-            padding: 12px 20px;
-            font-size: 1.2rem;
+            padding: 12px 0;
+            font-size: 1rem;
             font-weight: bold;
             border-radius: 60px;
-            width: 45%;
+            width: 30%;
             box-shadow: 0 5px 0 #a05e15;
             transition: 0.05s linear;
             text-align: center;
@@ -161,52 +158,67 @@
             color: #4f2d1a;
             margin-top: 0;
         }
+        /* 圖鑑網格 */
         .pokedex-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
             margin: 20px 0;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 8px;
         }
-        .pokedex-item {
-            background: #ece3d0;
-            border-radius: 60px;
-            padding: 12px 18px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        .pokedex-card {
+            background: #fdf8ed;
+            border-radius: 24px;
+            box-shadow: 0 6px 0 #b98f5c;
+            text-align: center;
+            padding: 12px 8px;
             cursor: pointer;
-            transition: 0.1s;
-            border: 1px solid #b98754;
+            transition: transform 0.1s, box-shadow 0.1s;
+            border: 2px solid #ebc28e;
         }
-        .pokedex-item:active { background: #d6c8aa; }
-        .monster-emoji {
-            font-size: 2rem;
-            background: white;
-            width: 55px;
-            height: 55px;
+        .pokedex-card:active {
+            transform: translateY(3px);
+            box-shadow: 0 3px 0 #b98f5c;
+        }
+        .pokedex-avatar {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 8px;
+            background: #e6d5b3;
             border-radius: 50%;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 0 0 2px #f3ba6e;
+            overflow: hidden;
         }
-        .monster-info {
-            flex: 1;
+        .pokedex-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-        .monster-info strong {
-            font-size: 1.2rem;
-            display: block;
+        .pokedex-card.uncaught {
+            opacity: 0.6;
+            filter: grayscale(0.3);
+            background: #cbbd9a;
+            border-color: #8e6a3e;
         }
-        .caught-badge {
-            background: #5fad56;
-            color: white;
-            border-radius: 30px;
-            padding: 4px 12px;
-            font-size: 0.7rem;
+        .pokedex-card.uncaught .pokedex-avatar {
+            background: #ab8e64;
         }
-        .not-caught {
-            background: #aaaaaa80;
-            color: #444;
+        .question-mark {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #5e3a1f;
+        }
+        .pokedex-name {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #3b2a1f;
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow-x: auto;
         }
         .close-modal {
             background: #ac7349;
@@ -219,13 +231,6 @@
             font-weight: bold;
             margin-top: 12px;
         }
-        .detail-view {
-            background: #faf0dd;
-            border-radius: 32px;
-            padding: 16px;
-            margin-top: 12px;
-            text-align: center;
-        }
         footer {
             text-align: center;
             font-size: 0.7rem;
@@ -237,15 +242,16 @@
 <body>
 <div class="game-container">
     <div class="status-bar">
-        <span>📖 妖怪大師</span>
+        <span>📖 台灣妖怪大師</span>
         <span class="catch-count">🐾 捕獲: <span id="catchNumber">0</span></span>
     </div>
     <div id="gameArea" class="game-area"></div>
     <div class="action-buttons">
         <button class="btn" id="openPokedexBtn">📕 圖鑑</button>
-        <button class="btn" id="resetBtn">🔄 重置進度</button>
+        <button class="btn" id="resetBtn">🔄 重置</button>
+        <button class="btn" id="igBtn">📷 IG</button>
     </div>
-    <footer>✨ 妖怪隨時間出現 → 點擊捕捉！</footer>
+    <footer>✨ 妖怪會隨機出現 → 點擊捕捉！</footer>
 </div>
 
 <!-- 圖鑑彈窗 -->
@@ -258,33 +264,33 @@
 </div>
 
 <script>
-  // ---------- 台灣妖怪資料庫 ----------
-const MONSTERS = [
-    { id: "1", name: "紅衣小女孩", emoji: "👻", desc: "台灣最知名的都市傳說與鄉野妖怪之一，通常被描述為一個身穿紅色童裝的小女孩，會突然出現在山區或監視器畫面中，被認為是山精鬼魅或「魔神仔」的一種。" },
-    { id: "2", name: "人面魚", emoji: "🐟", desc: "最早源於1990年代一則口耳相傳的靈異故事，描述一名釣客捕獲的吳郭魚身上浮現老婦人臉孔，並以台語說出「魚肉好吃嗎」等話語。" },
-    { id: "3", name: "油蹄貓", emoji: "🐱", desc: "油蹄貓會一種特殊的魔法，當牠跳躍過死者的身體時，死者會起死回生。" },
-    { id: "4", name: "山藥怪人", emoji: "👹", desc: "擁有一對翅膀會飛翔的神奇山藥，怕被吃掉。" },
-    { id: "5", name: "婆娑鳥", emoji: "🦜", desc: "公鳥華麗，母鳥素雅。他們是森林中的歌姬，有讓所有動物為之稱服的甜美歌聲。" },
-    { id: "6", name: "貓鬼", emoji: "🐈", desc: "貪吃鬼小貓咪，看到小孩肥美的臉頰走不動路，直到品嘗到麻油雞。" },
-    { id: "7", name: "鹿兔", emoji: "🐰", desc: "從前兔子的頭上都有長角，直到鹿將兔角借走，兔兔的頭上再也不長角了。" },
-    { id: "8", name: "兩腳魚", emoji: "🐠", desc: "因為太勤奮把報恩對象養成小廢物的肌肉猛魚。" },
-    { id: "9", name: "西瓜鬼", emoji: "🍉", desc: "西瓜鬼，是台灣傳說中的鬼怪，會變成西瓜以捉弄他人。" },
-    { id: "10", name: "鯰魚精", emoji: "🐋", desc: "覺得池子太小，招雨導致淹大水滅村，最後被三山國王嚴懲。" },
-    { id: "11", name: "貍女", emoji: "🦡", desc: "會變成美少女害男村民忘記回家的小果子狸。" },
-    { id: "12", name: "白犬", emoji: "🐶", desc: "達魯瑪克的守護獸，當部落搬家時，白犬不肯一直汪汪叫，結果部落村民因為瘧疾去世，之後族人將白犬叫的地方稱作「達洛卡可屯」。" },
-    { id: "13", name: "虎姑婆", emoji: "🐯", desc: "山中的老虎精化身為老婆婆，誘騙小孩開門，據說最怕熱水澡。" },
-    { id: "14", name: "雲龍", emoji: "🌪️", desc: "在台灣南方的傀儡山上，住著一條墨黑色的雲龍。牠最愛在雲層間穿梭，只要牠一出現，就會帶來大雨。" },
-    { id: "15", name: "宮燈姊姊", emoji: "👧", desc: "淡江大學校園內著名的女鬼傳說，相傳她穿著日治時期或復古學生制服，常在夜間提著宮燈現身於校園的宮燈道上，等待或詢問男學生「幾點了」。" },
-    { id: "16", name: "大明蛇神", emoji: "🐍", desc: "台灣台北市北投不動明王寺旁的瀑布兩側所供奉的「大蛇明神」，傳說源自日治時期危害地方的蛇妖被不動明王鎮伏後昇格為神明。" },
-    { id: "17", name: "幽靈巴士", emoji: "🚐", desc: "陽明山的仰德大道上有一台半夜還在載人的260公車，傳說那是給好兄弟坐的公車。" },
-    { id: "18", name: "雪山魔女", emoji: "🟣", desc: "據說在雪山山上有個女鬼會把登山的人誘導進深山山林裡失蹤，通常出現在雪山的黑森林中。" },
-    { id: "19", name: "陳守娘", emoji: "👩‍🦰", desc: "台灣最強女鬼，生前被欺負，死後化做怨靈因靈力太強導致台南大亂，土地公來勸她，被她趕跑。連廣澤尊王來了，紅光和青光在天上打了很久，最終被菩薩感化。" },
-    { id: "20", name: "大腳仙", emoji: "👟", desc: "屏東縣潮州鎮大腳仙林以其命名，後來傳說變成有一雙大腳的巨人許大砲。" }
-];
+    // ---------- 台灣妖怪資料庫 (20隻，ID皆為純數字字串) ----------
+    const MONSTERS = [
+        { id: "1", name: "紅衣小女孩", emoji: "👻", desc: "台灣最知名的都市傳說與鄉野妖怪之一，通常被描述為一個身穿紅色童裝的小女孩，會突然出現在山區或監視器畫面中，被認為是山精鬼魅或「魔神仔」的一種。" },
+        { id: "2", name: "人面魚", emoji: "🐟", desc: "最早源於1990年代一則口耳相傳的靈異故事，描述一名釣客捕獲的吳郭魚身上浮現老婦人臉孔，並以台語說出「魚肉好吃嗎」等話語。" },
+        { id: "3", name: "油蹄貓", emoji: "🐱", desc: "油蹄貓會一種特殊的魔法，當牠跳躍過死者的身體時，死者會起死回生。" },
+        { id: "4", name: "山藥怪人", emoji: "👹", desc: "擁有一對翅膀會飛翔的神奇山藥，怕被吃掉。" },
+        { id: "5", name: "婆娑鳥", emoji: "🦜", desc: "公鳥華麗，母鳥素雅。他們是森林中的歌姬，有讓所有動物為之稱服的甜美歌聲。" },
+        { id: "6", name: "貓鬼", emoji: "🐈", desc: "貪吃鬼小貓咪，看到小孩肥美的臉頰走不動路，直到品嘗到麻油雞。" },
+        { id: "7", name: "鹿兔", emoji: "🐰", desc: "從前兔子的頭上都有長角，直到鹿將兔角借走，兔兔的頭上再也不長角了。" },
+        { id: "8", name: "兩腳魚", emoji: "🐠", desc: "因為太勤奮把報恩對象養成小廢物的肌肉猛魚。" },
+        { id: "9", name: "西瓜鬼", emoji: "🍉", desc: "西瓜鬼，是台灣傳說中的鬼怪，會變成西瓜以捉弄他人。" },
+        { id: "10", name: "鯰魚精", emoji: "🐋", desc: "覺得池子太小，招雨導致淹大水滅村，最後被三山國王嚴懲。" },
+        { id: "11", name: "貍女", emoji: "🦡", desc: "會變成美少女害男村民忘記回家的小果子狸。" },
+        { id: "12", name: "白犬", emoji: "🐶", desc: "達魯瑪克的守護獸，當部落搬家時，白犬不肯一直汪汪叫，結果部落村民因為瘧疾去世，之後族人將白犬叫的地方稱作「達洛卡可屯」。" },
+        { id: "13", name: "虎姑婆", emoji: "🐯", desc: "山中的老虎精化身為老婆婆，誘騙小孩開門，據說最怕熱水澡。" },
+        { id: "14", name: "雲龍", emoji: "🌪️", desc: "在台灣南方的傀儡山上，住著一條墨黑色的雲龍。牠最愛在雲層間穿梭，只要牠一出現，就會帶來大雨。" },
+        { id: "15", name: "宮燈姊姊", emoji: "👧", desc: "淡江大學校園內著名的女鬼傳說，相傳她穿著日治時期或復古學生制服，常在夜間提著宮燈現身於校園的宮燈道上，等待或詢問男學生「幾點了」。" },
+        { id: "16", name: "大明蛇神", emoji: "🐍", desc: "台灣台北市北投不動明王寺旁的瀑布兩側所供奉的「大蛇明神」，傳說源自日治時期危害地方的蛇妖被不動明王鎮伏後昇格為神明。" },
+        { id: "17", name: "幽靈巴士", emoji: "🚐", desc: "陽明山的仰德大道上有一台半夜還在載人的260公車，傳說那是給好兄弟坐的公車。" },
+        { id: "18", name: "雪山魔女", emoji: "🟣", desc: "據說在雪山山上有個女鬼會把登山的人誘導進深山山林裡失蹤，通常出現在雪山的黑森林中。" },
+        { id: "19", name: "陳守娘", emoji: "👩‍🦰", desc: "台灣最強女鬼，生前被欺負，死後化做怨靈因靈力太強導致台南大亂，土地公來勸她，被她趕跑。連廣澤尊王來了，紅光和青光在天上打了很久，最終被菩薩感化。" },
+        { id: "20", name: "大腳仙", emoji: "👟", desc: "屏東縣潮州鎮大腳仙林以其命名，後來傳說變成有一雙大腳的巨人許大砲。" }
+    ];
 
     // ---------- 遊戲狀態 ----------
-    let caughtSet = new Set();     // 儲存已捕捉的妖怪 id
-    let currentMonsters = [];     // 當前畫面中的妖怪物件 { id, x, y, element, monsterData }
+    let caughtSet = new Set();
+    let currentMonsters = [];
     let spawnInterval = null;
 
     // DOM 元素
@@ -292,11 +298,12 @@ const MONSTERS = [
     const catchNumberSpan = document.getElementById("catchNumber");
     const openPokedexBtn = document.getElementById("openPokedexBtn");
     const resetBtn = document.getElementById("resetBtn");
+    const igBtn = document.getElementById("igBtn");
     const modal = document.getElementById("pokedexModal");
     const pokedexListDiv = document.getElementById("pokedexList");
     const closeModalBtn = document.getElementById("closeModalBtn");
 
-    // 儲存進度 (localStorage)
+    // 儲存進度
     function saveProgress() {
         const caughtArray = Array.from(caughtSet);
         localStorage.setItem("taiwanMonsterCaught", JSON.stringify(caughtArray));
@@ -306,9 +313,8 @@ const MONSTERS = [
         const saved = localStorage.getItem("taiwanMonsterCaught");
         if (saved) {
             const arr = JSON.parse(saved);
-            caughtSet = new Set(arr);
+            caughtSet = new Set(arr.map(id => String(id)));
         } else {
-            // 初次遊玩，預設都沒有抓到
             caughtSet.clear();
         }
         updateCatchCountUI();
@@ -318,141 +324,131 @@ const MONSTERS = [
         catchNumberSpan.innerText = caughtSet.size;
     }
 
-    // 顯示妖怪介紹 (捕捉時彈出)
     function showMonsterIntro(monsterData) {
         alert(`✨ 抓到 ${monsterData.name} ✨\n\n${monsterData.desc}`);
     }
 
-    // 捕捉妖怪
-    function catchMonster(monsterId, monsterData, element) {
-        if (caughtSet.has(monsterId)) {
-            // 已經抓過，還是可以再抓？ 為了遊戲性，重複抓不重複記錄，但可跳訊息
-            alert(`你再次遇見 ${monsterData.name}！但牠已經在圖鑑裡了～`);
-            // 移除畫面上的妖怪
-            removeMonsterElement(element);
-            return;
-        }
-        // 第一次抓到
-        caughtSet.add(monsterId);
-        saveProgress();
-        updateCatchCountUI();
-        showMonsterIntro(monsterData);
-        // 移除畫面上的妖怪
-        removeMonsterElement(element);
-    }
-
     function removeMonsterElement(element) {
         if (element && element.parentNode) element.remove();
-        // 從 currentMonsters 陣列移除
         const index = currentMonsters.findIndex(m => m.element === element);
         if (index !== -1) currentMonsters.splice(index, 1);
     }
 
-    // 隨機產生一隻妖怪 (出現於遊戲區)
+    function catchMonster(monsterId, monsterData, element) {
+        if (caughtSet.has(monsterId)) {
+            alert(`你再次遇見 ${monsterData.name}！但牠已經在圖鑑裡了～`);
+            removeMonsterElement(element);
+            return;
+        }
+        caughtSet.add(monsterId);
+        saveProgress();
+        updateCatchCountUI();
+        showMonsterIntro(monsterData);
+        removeMonsterElement(element);
+    }
+
     function spawnRandomMonster() {
         if (!gameArea) return;
-        // 隨機選一隻妖怪
         const randomIndex = Math.floor(Math.random() * MONSTERS.length);
         const monster = MONSTERS[randomIndex];
         
-        // 隨機位置 (避免太靠邊)
-        const areaRect = gameArea.getBoundingClientRect();
-        // 但因為在生成時可能遊戲區尺寸還沒確定？使用 offsetWidth/Height 更穩
-        const maxX = Math.max(100, gameArea.clientWidth - 90);
-        const maxY = Math.max(100, gameArea.clientHeight - 90);
+        const maxX = Math.max(80, gameArea.clientWidth - 90);
+        const maxY = Math.max(80, gameArea.clientHeight - 90);
         const x = 10 + Math.random() * maxX;
         const y = 10 + Math.random() * maxY;
         
-        // 建立妖怪按鈕
         const btn = document.createElement("button");
         btn.className = "monster-btn";
         btn.style.left = x + "px";
         btn.style.top = y + "px";
-        btn.innerHTML = `
-            <div>${monster.emoji}</div>
-            <div class="monster-name">${monster.name}</div>
-        `;
         
-        // 點擊捕捉事件
+        if (monster.image) {
+            btn.innerHTML = `
+                <img src="${monster.image}" style="width: 55px; height: 55px; object-fit: contain;" alt="${monster.name}">
+                <div class="monster-name">${monster.name}</div>
+            `;
+        } else {
+            btn.innerHTML = `
+                <div>${monster.emoji}</div>
+                <div class="monster-name">${monster.name}</div>
+            `;
+        }
+        
         btn.addEventListener("click", (e) => {
             e.stopPropagation();
             catchMonster(monster.id, monster, btn);
         });
         
         gameArea.appendChild(btn);
-        currentMonsters.push({
-            id: monster.id,
-            element: btn,
-            monsterData: monster,
-            x: x, y: y
-        });
+        currentMonsters.push({ element: btn, monsterData: monster });
         
-        // 自動消失機制：30秒後未捕捉會自動消失 (避免太多)
         setTimeout(() => {
-            if (btn.parentNode) {
-                removeMonsterElement(btn);
-            }
-        }, 30000);
+            if (btn.parentNode) removeMonsterElement(btn);
+        }, 40000);
     }
 
-    // 定時生成妖怪 (每 2.5~5 秒一隻)
     function startSpawning() {
         if (spawnInterval) clearInterval(spawnInterval);
         spawnInterval = setInterval(() => {
-            // 控制畫面最多同時存在 8 隻妖怪
-            if (currentMonsters.length < 12) {
+            if (currentMonsters.length < 15) {
                 spawnRandomMonster();
             }
-        }, 2800); // 2.8 秒生成一隻，類似隨機遭遇節奏
+        }, 2800);
     }
 
-    // 清除所有妖怪
-    function clearAllMonsters() {
-        for (let m of currentMonsters) {
-            if (m.element && m.element.remove) m.element.remove();
-        }
-        currentMonsters = [];
-    }
-
-    // ---------- 圖鑑功能 ----------
+    // 圖鑑功能
     function renderPokedex() {
         if (!pokedexListDiv) return;
         pokedexListDiv.innerHTML = "";
+        
         for (let monster of MONSTERS) {
             const isCaught = caughtSet.has(monster.id);
-            const itemDiv = document.createElement("div");
-            itemDiv.className = "pokedex-item";
-            if (!isCaught) itemDiv.style.opacity = "0.7";
+            const card = document.createElement("div");
+            card.className = "pokedex-card";
+            if (!isCaught) card.classList.add("uncaught");
             
-            itemDiv.innerHTML = `
-                <div class="monster-emoji">${monster.emoji}</div>
-                <div class="monster-info">
-                    <strong>${monster.name}</strong>
-                    <span style="font-size:0.8rem;">${isCaught ? "✅ 已捕獲" : "❓ 尚未遇見"}</span>
-                </div>
-                <div style="font-size:1.3rem;">${isCaught ? "🔍" : "🔒"}</div>
-            `;
+            const avatarDiv = document.createElement("div");
+            avatarDiv.className = "pokedex-avatar";
             
-            // 只有已捕捉的妖怪可以查看詳細介紹
             if (isCaught) {
-                itemDiv.style.cursor = "pointer";
-                itemDiv.addEventListener("click", (e) => {
+                if (monster.image) {
+                    const img = document.createElement("img");
+                    img.src = monster.image;
+                    img.alt = monster.name;
+                    avatarDiv.appendChild(img);
+                } else {
+                    avatarDiv.style.fontSize = "2.2rem";
+                    avatarDiv.textContent = monster.emoji;
+                }
+            } else {
+                const question = document.createElement("div");
+                question.className = "question-mark";
+                question.textContent = "?";
+                avatarDiv.appendChild(question);
+            }
+            
+            const nameSpan = document.createElement("div");
+            nameSpan.className = "pokedex-name";
+            nameSpan.textContent = monster.name;
+            
+            card.appendChild(avatarDiv);
+            card.appendChild(nameSpan);
+            
+            if (isCaught) {
+                card.addEventListener("click", (e) => {
                     e.stopPropagation();
                     showDetailModal(monster);
                 });
             } else {
-                itemDiv.style.cursor = "default";
-                itemDiv.addEventListener("click", () => {
+                card.addEventListener("click", () => {
                     alert(`你還沒遇過 ${monster.name}，再多逛逛吧！`);
                 });
             }
-            pokedexListDiv.appendChild(itemDiv);
+            pokedexListDiv.appendChild(card);
         }
     }
-    
-    // 詳細介紹彈窗 (自定義，比alert美觀)
+
     function showDetailModal(monster) {
-        // 簡單模態框再嵌套一個小視窗? 直接用 alert 也可以，但為了體驗，做一個獨立對話框
         const detailHtml = `
             <div style="text-align:center; padding:8px;">
                 <div style="font-size:4rem;">${monster.emoji}</div>
@@ -490,56 +486,44 @@ const MONSTERS = [
         });
     }
 
-    // 重置遊戲進度
     function resetProgress() {
         if (confirm("⚠️ 重置會清除所有捕捉紀錄，確定要重新開始嗎？")) {
             caughtSet.clear();
             saveProgress();
             updateCatchCountUI();
-            clearAllMonsters();
+            for (let m of currentMonsters) {
+                if (m.element && m.element.remove) m.element.remove();
+            }
+            currentMonsters = [];
             alert("遊戲進度已重置！妖怪們重新出現～");
         }
     }
 
-    // 打開圖鑑視窗
     function openPokedex() {
         renderPokedex();
         modal.style.display = "flex";
     }
 
-    // 關閉圖鑑
     function closeModal() {
         modal.style.display = "none";
     }
 
-    // 調整遊戲區尺寸, 讓妖怪生成時參考正確寬高 (監聽 resize)
-    function adjustArea() {
-        // 強制重設所有妖怪位置? 不強制，但新妖怪會重新計算
-        if (gameArea) {
-            // 確保遊戲區有最小高度 (手機可能收縮)
-            if (gameArea.clientHeight < 300) gameArea.style.minHeight = "380px";
-        }
-    }
-
-    // 初始化遊戲
     function init() {
         loadProgress();
         startSpawning();
-        window.addEventListener("resize", () => {
-            // 簡單調整：避免妖怪超出邊界，但不強制移動（因為會定期消失，新妖怪會正常）
-        });
-        adjustArea();
     }
-    
+
     // 事件綁定
     openPokedexBtn.addEventListener("click", openPokedex);
     resetBtn.addEventListener("click", resetProgress);
     closeModalBtn.addEventListener("click", closeModal);
-    modal.addEventListener("click", (e) => {
-        if (e.target === modal) closeModal();
-    });
-    
-    // 開始遊戲
+    if (igBtn) {
+        igBtn.addEventListener("click", () => {
+            // 請將下方網址換成你自己的 Instagram 個人檔案連結
+            window.open("https://www.instagram.com/mongyao.2026/", "_blank");
+        });
+    }
+
     init();
 </script>
 </body>
